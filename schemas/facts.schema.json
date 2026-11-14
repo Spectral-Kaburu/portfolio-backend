@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Portfolio Engine Facts",
+  "type": "object",
+  "required": ["schema_version", "scanned_at", "projects"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "scanned_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "projects": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/project" }
+    }
+  },
+  "$defs": {
+    "project": {
+      "type": "object",
+      "required": [
+        "repo_id", "name", "head", "commit_count",
+        "first_commit_at", "last_commit_at", "languages",
+        "manifests", "recent_commits", "new_commits_since_last_scan"
+      ],
+      "properties": {
+        "repo_id": { "type": "string", "pattern": "^[a-f0-9]{12}$" },
+        "name": { "type": "string", "minLength": 1 },
+        "remote_url": { "type": ["string", "null"] },
+        "head": { "type": "string", "pattern": "^[a-f0-9]{12}$" },
+        "commit_count": { "type": "integer", "minimum": 0 },
+        "first_commit_at": { "type": "string", "format": "date-time" },
+        "last_commit_at": { "type": "string", "format": "date-time" },
+        "languages": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/language" }
+        },
+        "manifests": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/manifest" }
+        },
+        "readme_excerpt": { "type": ["string", "null"] },
+        "recent_commits": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/recent_commit" }
+        },
+        "new_commits_since_last_scan": { "type": "integer", "minimum": 0 },
+        "id_source": { "type": ["string", "null"] }
+      }
+    },
+    "language": {
+      "type": "object",
+      "required": ["name", "bytes", "share"],
+      "properties": {
+        "name": { "type": "string" },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "share": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "manifest": {
+      "type": "object",
+      "required": ["file", "kind"],
+      "properties": {
+        "file": { "type": "string" },
+        "kind": { "type": "string" }
+      }
+    },
+    "recent_commit": {
+      "type": "object",
+      "required": ["hash", "at", "subject", "files_changed", "insertions", "deletions"],
+      "properties": {
+        "hash": { "type": "string", "pattern": "^[a-f0-9]{12}$" },
+        "at": { "type": "string", "format": "date-time" },
+        "subject": { "type": "string" },
+        "files_changed": { "type": "integer", "minimum": 0 },
+        "insertions": { "type": "integer", "minimum": 0 },
+        "deletions": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

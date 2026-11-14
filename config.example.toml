@@ -1,0 +1,23 @@
+# Portfolio Engine Configuration
+# Copy this file to config.toml and adjust the paths.
+
+# Root directories to scan for git repositories.
+# Use absolute paths. Tilde (~) expansion is not supported.
+roots = [
+    "/home/user/projects",
+    "/home/user/work",
+]
+
+# How deep to look for repositories under each root (default: 4).
+max_depth = 4
+
+# Repositories with a commit within this many days are considered "active" (default: 30).
+active_days = 30
+
+# Directory names to skip during scanning (default: common build/dependency dirs).
+exclude_dirs = [
+    "node_modules",
+    "target",
+    ".venv",
+    "vendor",
+]
