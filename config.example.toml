@@ -21,3 +21,17 @@ exclude_dirs = [
     ".venv",
     "vendor",
 ]
+
+# AI Configuration (M2: Enrich)
+# These settings control the AI enrichment feature.
+[ai]
+base_url = "https://integrate.api.nvidia.com/v1"
+api_key_env = "NVIDIA_API_KEY"   # the NAME of the env var, never the key
+model = ""                        # set by `ai models`
+requests_per_minute = 20
+max_retries = 4
+connect_timeout_secs = 10
+read_timeout_secs = 120
+temperature = 0.2
+max_tokens = 1500
+digest_max_bytes = 6000

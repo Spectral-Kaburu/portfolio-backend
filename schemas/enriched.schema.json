@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Portfolio Engine Enriched",
+  "type": "object",
+  "required": ["schema_version", "enriched_at", "model", "prompt_version", "projects", "recent_activity"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "enriched_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "model": {
+      "type": "string"
+    },
+    "prompt_version": {
+      "type": "string"
+    },
+    "projects": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/project" }
+    },
+    "recent_activity": { "$ref": "#/$defs/recent_activity" }
+  },
+  "$defs": {
+    "project": {
+      "type": "object",
+      "required": ["repo_id", "name", "status", "overview", "claims", "related", "claims_dropped", "failure"],
+      "properties": {
+        "repo_id": { "type": "string" },
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "dormant"] },
+        "overview": { "type": "string", "maxLength": 700 },
+        "claims": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/claim" }
+        },
+        "related": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "claims_dropped": { "type": "integer", "minimum": 0 },
+        "failure": { "type": ["string", "null"] }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "required": ["text", "evidence"],
+      "properties": {
+        "text": { "type": "string" },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "recent_activity": {
+      "type": "object",
+      "required": ["summary", "claims", "failure"],
+      "properties": {
+        "summary": { "type": "string" },
+        "claims": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/activity_claim" }
+        },
+        "failure": { "type": ["string", "null"] }
+      }
+    },
+    "activity_claim": {
+      "type": "object",
+      "required": ["text", "projects"],
+      "properties": {
+        "text": { "type": "string" },
+        "projects": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}
