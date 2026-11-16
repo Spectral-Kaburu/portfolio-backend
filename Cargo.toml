@@ -17,8 +17,9 @@ tabled = "0.16"
 jsonschema = "0.20"
 reqwest = { version = "0.12", features = ["blocking"] }
 indexmap = "2.7"
-sha2 = "0.10"
 async-trait = "0.1"
+regex = "1.11"
+rand = "0.8"
 
 [dev-dependencies]
 tempfile = "3.15"

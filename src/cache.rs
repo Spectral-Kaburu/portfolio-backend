@@ -14,15 +14,17 @@ pub struct CacheEntry {
 }
 
 /// Cache for AI responses.
+#[allow(dead_code)]
 pub struct Cache {
-    entries: HashMap<String, CacheEntry>,
+    _entries: HashMap<String, CacheEntry>,
 }
 
+#[allow(dead_code)]
 impl Cache {
     pub fn new(_cache_path: &std::path::Path) -> anyhow::Result<Self> {
         // Stub - implementation in M2
         Ok(Self {
-            entries: HashMap::new(),
+            _entries: HashMap::new(),
         })
     }
 

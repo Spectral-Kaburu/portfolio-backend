@@ -6,7 +6,7 @@ The owner is **learning Rust**. Teaching is a deliverable, not a bonus.
 
 ## Context discipline (read this first)
 - Read only: this file, then `docs/spec/00-overview.md`, then the spec for the **current milestone**. Do not open other specs. Open `docs/spec/delegation.md` only when a delegation limit below is crossed.
-- Current milestone: **M1** (`docs/spec/m1-scan.md`). The human updates this line.
+- Current milestone: **M3** (`docs/spec/m3-review.md`). The human updates this line.
 - Read files by line range or with grep. Never paste whole files into chat. After each task, summarize in 10 lines or fewer and drop details you no longer need.
 - If your harness has subagents, use them for exploration and large reads so the main context stays small.
 

@@ -1,6 +1,8 @@
 # Concepts to File Mapping
 
-This document maps Rust concepts to the files where they are introduced or heavily used in M1.
+This document maps Rust concepts to the files where they are introduced or heavily used.
+
+## M1 (Scan)
 
 | Concept | Files |
 |---------|-------|
@@ -21,3 +23,19 @@ This document maps Rust concepts to the files where they are introduced or heavi
 | HashMap for Grouping | `src/languages.rs` |
 | BTreeMap for Deterministic Ordering | `src/state.rs` |
 | anyhow Context for Errors | All source files |
+
+## M2 (Enrich)
+
+| Concept | Files |
+|---------|-------|
+| Traits and Trait Objects | `src/ai_client.rs`, `tests/ai_client_tests.rs` |
+| Async Traits (`async_trait`) | `src/ai_client.rs` |
+| Dependency Injection (Clock) | `src/ai_client.rs`, `tests/ai_client_tests.rs` |
+| Thread-Safe Interior Mutability (`Arc<Mutex<T>>`) | `src/ai_client.rs` |
+| Blocking HTTP with `reqwest` | `src/ai_client.rs` |
+| Regex for Redaction | `src/redact.rs`, `tests/redact_tests.rs` |
+| SHA-256 Hashing for Cache Keys | `src/cache.rs` |
+| Atomic File Writes | `src/enrich.rs` |
+| JSON Schema Validation for AI Output | `src/enrich.rs`, `schemas/enriched.schema.json` |
+| Mock HTTP Server Testing | `tests/ai_client_tests.rs` |
+| Retry Logic with Exponential Backoff | `src/ai_client.rs` |

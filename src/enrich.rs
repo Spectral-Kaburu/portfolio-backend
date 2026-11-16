@@ -11,13 +11,18 @@ use crate::model::Draft;
 
 /// Enrichment result for a single project.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct EnrichmentResult {
     pub draft: Option<Draft>,
     pub failed: Vec<String>, // Project names that failed
 }
 
 /// Run enrichment on opted-in projects.
-pub fn enrich(_facts_path: &std::path::Path, _config: &crate::model::AiConfig) -> anyhow::Result<EnrichmentResult> {
+#[allow(dead_code)]
+pub fn enrich(
+    _facts_path: &std::path::Path,
+    _config: &crate::model::AiConfig,
+) -> anyhow::Result<EnrichmentResult> {
     // Stub - implementation in M2
     Ok(EnrichmentResult {
         draft: None,
@@ -26,7 +31,11 @@ pub fn enrich(_facts_path: &std::path::Path, _config: &crate::model::AiConfig) -
 }
 
 /// Dry-run: print request bodies without sending.
-pub fn dry_run(_facts_path: &std::path::Path, _config: &crate::model::AiConfig) -> anyhow::Result<()> {
+#[allow(dead_code)]
+pub fn dry_run(
+    _facts_path: &std::path::Path,
+    _config: &crate::model::AiConfig,
+) -> anyhow::Result<()> {
     // Stub - implementation in M2
     println!("Dry run not implemented");
     Ok(())

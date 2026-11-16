@@ -11,6 +11,15 @@ mod languages;
 mod scan;
 mod state;
 
+// M2 modules
+mod ai_client;
+mod cache;
+mod digest;
+mod enrich;
+mod model;
+mod pickers;
+mod redact;
+
 #[derive(Parser)]
 #[command(name = "portfolio-engine")]
 #[command(about = "Scan local git repos and build a portfolio overview")]
@@ -42,6 +51,36 @@ enum Commands {
         /// Validate output against schema (default: true in tests)
         #[arg(long)]
         validate: bool,
+    },
+    /// List available AI models and probe the chosen one
+    AiModels {
+        /// Path to config file (default: config.toml)
+        #[arg(short, long, default_value = "config.toml")]
+        config: PathBuf,
+    },
+    /// Select projects for AI enrichment
+    AiSelect {
+        /// Path to config file (default: config.toml)
+        #[arg(short, long, default_value = "config.toml")]
+        config: PathBuf,
+        /// Path to facts file (default: data/facts.json)
+        #[arg(short, long, default_value = "data/facts.json")]
+        facts: PathBuf,
+    },
+    /// Enrich projects with AI-generated prose
+    Enrich {
+        /// Path to config file (default: config.toml)
+        #[arg(short, long, default_value = "config.toml")]
+        config: PathBuf,
+        /// Path to facts file (default: data/facts.json)
+        #[arg(short, long, default_value = "data/facts.json")]
+        facts: PathBuf,
+        /// Dry run: print request bodies without sending
+        #[arg(long)]
+        dry_run: bool,
+        /// Force re-fetching from AI (ignore cache)
+        #[arg(long)]
+        force: bool,
     },
 }
 
@@ -81,6 +120,30 @@ fn main() -> Result<()> {
                     "Scan complete. {} projects written to data/facts.json",
                     facts.projects.len()
                 );
+            }
+        }
+        Commands::AiModels { config } => {
+            let _config = config::Config::load(&config)
+                .with_context(|| format!("Failed to load config from {}", config.display()))?;
+            println!("ai models command not yet implemented");
+        }
+        Commands::AiSelect { config, facts: _ } => {
+            let _config = config::Config::load(&config)
+                .with_context(|| format!("Failed to load config from {}", config.display()))?;
+            println!("ai select command not yet implemented");
+        }
+        Commands::Enrich {
+            config,
+            facts: _,
+            dry_run,
+            force: _,
+        } => {
+            let _config = config::Config::load(&config)
+                .with_context(|| format!("Failed to load config from {}", config.display()))?;
+            if dry_run {
+                println!("enrich --dry-run command not yet implemented");
+            } else {
+                println!("enrich command not yet implemented");
             }
         }
     }
