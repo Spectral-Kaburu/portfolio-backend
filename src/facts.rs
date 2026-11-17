@@ -147,3 +147,69 @@ impl Facts {
         Ok(())
     }
 }
+
+/// RUST NOTE: Timestamp parsing is strict; malformed RFC 3339 timestamps will
+/// fail deserialization with an error. This ensures data integrity for facts.json
+/// produced by the scanner. Lenient parsing (e.g., accepting "invalid" formats)
+/// is intentionally not supported to prevent silent data corruption.
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json;
+
+    /// Test that valid RFC 3339 timestamps deserialize correctly.
+    #[test]
+    fn test_rfc3339_valid_timestamp() {
+        let json = r#""2024-01-15T10:30:00Z""#;
+        let result: Result<DateTime<Utc>, _> = serde_json::from_str(json);
+        assert!(result.is_ok());
+        let dt = result.unwrap();
+        assert_eq!(dt.year(), 2024);
+        assert_eq!(dt.month(), 1);
+        assert_eq!(dt.day(), 15);
+    }
+
+    /// Test that malformed RFC 3339 timestamps fail deserialization.
+    #[test]
+    fn test_rfc3339_malformed_timestamp_fails() {
+        let json = r#""not-a-timestamp""#;
+        let result: Result<DateTime<Utc>, _> = serde_json::from_str(json);
+        assert!(result.is_err(), "Expected error for malformed timestamp");
+    }
+
+    /// Test that incomplete timestamps fail deserialization.
+    #[test]
+    fn test_rfc3339_incomplete_timestamp_fails() {
+        let json = r#""2024-01-15""#;
+        let result: Result<DateTime<Utc>, _> = serde_json::from_str(json);
+        assert!(result.is_err(), "Expected error for incomplete timestamp");
+    }
+
+    /// Test Facts struct with valid timestamps deserializes correctly.
+    #[test]
+    fn test_facts_valid_deserialization() {
+        let json = r#"{
+            "schema_version": 1,
+            "scanned_at": "2024-01-15T10:30:00Z",
+            "projects": []
+        }"#;
+        let result: Result<Facts, _> = serde_json::from_str(json);
+        assert!(result.is_ok());
+    }
+
+    /// Test Facts struct with malformed timestamp in scanned_at fails deserialization.
+    #[test]
+    fn test_facts_malformed_scanned_at_fails() {
+        let json = r#"{
+            "schema_version": 1,
+            "scanned_at": "invalid-timestamp",
+            "projects": []
+        }"#;
+        let result: Result<Facts, _> = serde_json::from_str(json);
+        assert!(
+            result.is_err(),
+            "Expected error for malformed timestamp in Facts"
+        );
+    }
+}
