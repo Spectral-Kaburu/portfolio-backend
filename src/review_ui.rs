@@ -28,7 +28,9 @@ pub fn run_interactive_loop(
         .filter(|pr| {
             let project = draft.projects.iter().find(|p| p.repo_id == pr.repo_id);
             let override_opt = overrides.projects.get(&pr.repo_id);
-            let decision = crate::decisions::effective_decision(override_opt, project.unwrap());
+            let decision = project
+                .map(|p| crate::decisions::effective_decision(override_opt, p))
+                .unwrap_or(Decision::Hidden);
             matches!(decision, Decision::Pending | Decision::Stale)
         })
         .collect();
@@ -60,7 +62,17 @@ pub fn run_interactive_loop(
             .projects
             .iter()
             .find(|p| p.repo_id == project_report.repo_id)
-            .unwrap();
+            .or_else(|| {
+                eprintln!(
+                    "Warning: project {} not found in draft, skipping",
+                    project_report.repo_id
+                );
+                None
+            });
+        let project = match project {
+            Some(p) => p,
+            None => continue,
+        };
 
         println!("\n--- Project: {} ({}) ---", project.name, project.repo_id);
         println!("Overview: {}", project.overview);
