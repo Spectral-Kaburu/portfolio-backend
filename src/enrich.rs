@@ -21,7 +21,7 @@ pub struct EnrichmentResult {
 #[allow(dead_code)]
 pub fn enrich(
     _facts_path: &std::path::Path,
-    _config: &crate::model::AiConfig,
+    _config: &crate::config::AiConfig,
 ) -> anyhow::Result<EnrichmentResult> {
     // Stub - implementation in M2
     Ok(EnrichmentResult {
@@ -34,7 +34,7 @@ pub fn enrich(
 #[allow(dead_code)]
 pub fn dry_run(
     _facts_path: &std::path::Path,
-    _config: &crate::model::AiConfig,
+    _config: &crate::config::AiConfig,
 ) -> anyhow::Result<()> {
     // Stub - implementation in M2
     println!("Dry run not implemented");
