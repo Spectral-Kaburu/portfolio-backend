@@ -19,8 +19,11 @@ mod state;
 
 // M2 modules
 mod ai_client;
+mod cache;
 mod digest;
+mod enrich;
 mod model;
+mod pickers;
 mod redact;
 
 #[derive(Parser)]
