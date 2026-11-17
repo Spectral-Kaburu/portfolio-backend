@@ -229,8 +229,8 @@ mod tests {
             remote_url: Some("https://github.com/user/repo.git".to_string()),
             head: "def456".to_string(),
             commit_count: 100,
-            first_commit_at: Utc.timestamp_opt(1609459200, 0).single().unwrap(), // 2021-01-01
-            last_commit_at: Utc.timestamp_opt(1705996800, 0).single().unwrap(), // 2024-01-31
+            first_commit_at: Utc.timestamp_opt(1609459200, 0).single().expect("valid timestamp for 2021-01-01"), // 2021-01-01
+            last_commit_at: Utc.timestamp_opt(1705996800, 0).single().expect("valid timestamp for 2024-01-31"), // 2024-01-31
             languages: vec![
                 Language {
                     name: "Rust".to_string(),
@@ -261,7 +261,7 @@ mod tests {
             recent_commits: vec![
                 RecentCommit {
                     hash: "a1b2c3d4e5f6a1b2".to_string(),
-                    at: Utc.timestamp_opt(1705996800, 0).single().unwrap(),
+                    at: Utc.timestamp_opt(1705996800, 0).single().expect("valid timestamp for 2024-01-31"),
                     subject: "Fix bug in the main module with a very long subject line that should be truncated".to_string(),
                     files_changed: 5,
                     insertions: 100,
@@ -374,7 +374,8 @@ mod tests {
         let project = make_test_project();
         let facts = Facts::new(vec![project]);
 
-        let digest_str = build_digest(&facts, 30, 10000).unwrap();
+        let digest_str =
+            build_digest(&facts, 30, 10000).expect("build_digest should succeed for valid project");
 
         // Should not contain file paths (only project name, not paths)
         assert!(!digest_str.contains("/home/"));
@@ -386,7 +387,8 @@ mod tests {
         let project = make_test_project();
         let facts = Facts::new(vec![project]);
 
-        let digest_str = build_digest(&facts, 30, 10000).unwrap();
+        let digest_str =
+            build_digest(&facts, 30, 10000).expect("build_digest should succeed for valid project");
 
         // Parse and check language shares sum to 1.0
         let digests: Vec<serde_json::Value> =
