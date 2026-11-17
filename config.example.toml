@@ -35,3 +35,11 @@ read_timeout_secs = 120
 temperature = 0.2
 max_tokens = 1500
 digest_max_bytes = 6000
+
+# Review Configuration (M3: Review)
+# These settings control the AI review feature.
+[review]
+model = ""                  # must differ from [ai] model
+max_overview_chars = 700
+jargon_terms = ["refactor", "middleware", "endpoint", "pipeline", "daemon", "regex", "boilerplate", "scaffold", "async", "mutex", "API", "CLI", "TUI", "ORM", "JSON", "YAML"]
+deny_terms = []             # the owner's private words; checked in code only, NEVER sent to any API
