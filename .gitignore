@@ -4,3 +4,4 @@ overrides.toml
 .env*
 .briefs/
 target/
+.~lock.*#
