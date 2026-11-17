@@ -8,7 +8,13 @@ fn run_git(dir: &Path, args: &[&str]) -> Result<String> {
         .args(args)
         .current_dir(dir)
         .output()
-        .with_context(|| format!("Failed to run git command: git {}", args.join(" ")))?;
+        .map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                anyhow::anyhow!("git binary not found. Please install git to use portfolio-engine.")
+            } else {
+                anyhow::anyhow!("Failed to run git command: git {}: {}", args.join(" "), e)
+            }
+        })?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -172,7 +178,9 @@ fn parse_recent_commits(dir: &Path, output: &str) -> Result<Vec<RecentCommit>> {
     let mut lines = output.lines().peekable();
 
     while lines.peek().is_some() {
-        let header = lines.next().unwrap();
+        let header = lines
+            .next()
+            .context("Unexpected end of input while parsing commit header")?;
         let parts: Vec<&str> = header.split('\0').collect();
         if parts.len() < 2 {
             continue;
@@ -194,9 +202,13 @@ fn parse_recent_commits(dir: &Path, output: &str) -> Result<Vec<RecentCommit>> {
         let mut deletions = 0u32;
 
         while lines.peek().is_some() {
-            let line = lines.peek().unwrap();
+            let line = lines
+                .peek()
+                .ok_or_else(|| anyhow::anyhow!("Unexpected end of input while parsing numstat"))?;
             if line.contains('\t') {
-                let line = lines.next().unwrap();
+                let line = lines
+                    .next()
+                    .context("Unexpected end of input while reading numstat line")?;
                 let parts: Vec<&str> = line.split('\t').collect();
                 if parts.len() >= 3 {
                     if let Ok(ins) = parts[0].parse::<u32>() {
