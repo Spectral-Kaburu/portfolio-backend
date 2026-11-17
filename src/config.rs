@@ -2,6 +2,86 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+/// AI client configuration from config.toml.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct AiConfig {
+    pub base_url: String,
+    pub api_key_env: String,
+    pub model: String,
+    pub requests_per_minute: u32,
+    pub max_retries: u32,
+    pub connect_timeout_secs: u64,
+    pub read_timeout_secs: u64,
+    pub temperature: f64,
+    pub max_tokens: u32,
+    pub digest_max_bytes: usize,
+}
+
+impl Default for AiConfig {
+    fn default() -> Self {
+        Self {
+            base_url: "https://integrate.api.nvidia.com/v1".to_string(),
+            api_key_env: "NVIDIA_API_KEY".to_string(),
+            model: String::new(),
+            requests_per_minute: 20,
+            max_retries: 4,
+            connect_timeout_secs: 10,
+            read_timeout_secs: 120,
+            temperature: 0.2,
+            max_tokens: 1500,
+            digest_max_bytes: 6000,
+        }
+    }
+}
+
+impl AiConfig {
+    /// Returns the API key from the environment variable.
+    /// Does NOT log or print the key value.
+    pub fn api_key(&self) -> anyhow::Result<String> {
+        std::env::var(&self.api_key_env)
+            .with_context(|| format!("Please set the {} environment variable", self.api_key_env))
+    }
+}
+
+/// Review configuration from config.toml.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct ReviewConfig {
+    pub model: String,
+    pub max_overview_chars: usize,
+    pub jargon_terms: Vec<String>,
+    pub deny_terms: Vec<String>,
+}
+
+impl Default for ReviewConfig {
+    fn default() -> Self {
+        Self {
+            model: String::new(),
+            max_overview_chars: 700,
+            jargon_terms: vec![
+                "refactor".to_string(),
+                "middleware".to_string(),
+                "endpoint".to_string(),
+                "pipeline".to_string(),
+                "daemon".to_string(),
+                "regex".to_string(),
+                "boilerplate".to_string(),
+                "scaffold".to_string(),
+                "async".to_string(),
+                "mutex".to_string(),
+                "API".to_string(),
+                "CLI".to_string(),
+                "TUI".to_string(),
+                "ORM".to_string(),
+                "JSON".to_string(),
+                "YAML".to_string(),
+            ],
+            deny_terms: vec![],
+        }
+    }
+}
+
 /// Configuration for the portfolio engine.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -13,6 +93,12 @@ pub struct Config {
     pub active_days: u32,
     /// Directory names to exclude during scanning.
     pub exclude_dirs: Vec<String>,
+    /// AI configuration (M2: Enrich)
+    #[serde(default)]
+    pub ai: AiConfig,
+    /// Review configuration (M3: Review)
+    #[serde(default)]
+    pub review: ReviewConfig,
 }
 
 impl Default for Config {
@@ -27,6 +113,8 @@ impl Default for Config {
                 ".venv".to_string(),
                 "vendor".to_string(),
             ],
+            ai: AiConfig::default(),
+            review: ReviewConfig::default(),
         }
     }
 }
@@ -112,4 +200,26 @@ exclude_dirs = [
     ".venv",
     "vendor",
 ]
+
+# AI Configuration (M2: Enrich)
+# These settings control the AI enrichment feature.
+[ai]
+base_url = "https://integrate.api.nvidia.com/v1"
+api_key_env = "NVIDIA_API_KEY"   # the NAME of the env var, never the key
+model = ""                        # set by `ai models`
+requests_per_minute = 20
+max_retries = 4
+connect_timeout_secs = 10
+read_timeout_secs = 120
+temperature = 0.2
+max_tokens = 1500
+digest_max_bytes = 6000
+
+# Review Configuration (M3: Review)
+# These settings control the AI review feature.
+[review]
+model = ""                  # must differ from [ai] model
+max_overview_chars = 700
+jargon_terms = ["refactor", "middleware", "endpoint", "pipeline", "daemon", "regex", "boilerplate", "scaffold", "async", "mutex", "API", "CLI", "TUI", "ORM", "JSON", "YAML"]
+deny_terms = []             # the owner's private words; checked in code only, NEVER sent to any API
 "#;
