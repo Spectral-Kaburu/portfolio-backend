@@ -1,5 +1,5 @@
 use anyhow::Result;
-use portfolio_engine::config::Config;
+use portfolio_engine::config::{AiConfig, Config, ReviewConfig};
 use portfolio_engine::facts::Facts;
 use portfolio_engine::scan;
 use std::fs;
@@ -65,6 +65,8 @@ fn create_test_config(roots: &[&Path]) -> Config {
             ".venv".to_string(),
             "vendor".to_string(),
         ],
+        ai: AiConfig::default(),
+        review: ReviewConfig::default(),
     }
 }
 
