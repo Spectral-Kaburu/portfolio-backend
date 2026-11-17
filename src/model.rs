@@ -1,53 +1,12 @@
 //! Shared types for M2: digest, evidence map, draft, and AI config.
+//! Shared types for M3: review checks, AI review results, decisions, reviewed export.
 //!
 //! RUST NOTE: These types are shared across multiple modules and must be
-//! serializable to JSON for the draft output format.
+//! serializable to JSON for the draft/review output formats.
 
-use anyhow::Context;
 use chrono::{DateTime, Utc};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-
-/// AI client configuration from config.toml.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct AiConfig {
-    pub base_url: String,
-    pub api_key_env: String,
-    pub model: String,
-    pub requests_per_minute: u32,
-    pub max_retries: u32,
-    pub connect_timeout_secs: u64,
-    pub read_timeout_secs: u64,
-    pub temperature: f64,
-    pub max_tokens: u32,
-    pub digest_max_bytes: usize,
-}
-
-impl Default for AiConfig {
-    fn default() -> Self {
-        Self {
-            base_url: "https://integrate.api.nvidia.com/v1".to_string(),
-            api_key_env: "NVIDIA_API_KEY".to_string(),
-            model: String::new(),
-            requests_per_minute: 20,
-            max_retries: 4,
-            connect_timeout_secs: 10,
-            read_timeout_secs: 120,
-            temperature: 0.2,
-            max_tokens: 1500,
-            digest_max_bytes: 6000,
-        }
-    }
-}
-
-impl AiConfig {
-    /// Returns the API key from the environment variable.
-    /// Does NOT log or print the key value.
-    pub fn api_key(&self) -> anyhow::Result<String> {
-        std::env::var(&self.api_key_env)
-            .with_context(|| format!("Please set the {} environment variable", self.api_key_env))
-    }
-}
 
 /// Status based on last commit date.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -104,14 +63,12 @@ pub struct RecentActivity {
     pub claims: Vec<RecentActivityClaim>,
     pub failure: Option<String>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(dead_code)]
 pub struct RecentActivityClaim {
     pub text: String,
     pub projects: Vec<String>,
 }
-
 /// The complete draft output.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(dead_code)]
@@ -122,6 +79,7 @@ pub struct Draft {
     pub prompt_version: String,
     pub projects: Vec<ProjectOverview>,
     pub recent_activity: RecentActivity,
+    pub evidence_refs: std::collections::HashMap<String, EvidenceRef>,
 }
 
 impl Default for Draft {
@@ -137,8 +95,215 @@ impl Default for Draft {
                 claims: Vec::new(),
                 failure: None,
             },
+            evidence_refs: std::collections::HashMap::new(),
         }
     }
+}
+
+// ===================== M3: Review Types =====================
+
+/// Severity of a review check.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[allow(dead_code)]
+pub enum Severity {
+    Error,
+    Warning,
+}
+
+/// A single review check result.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct ReviewCheck {
+    pub code: String,
+    pub severity: Severity,
+    pub message: String,
+}
+
+/// AI reviewer claim verdict.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[allow(dead_code)]
+pub enum Verdict {
+    Supported,
+    Partial,
+    Unsupported,
+}
+
+/// AI reviewer claim verdict with index and reason.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct ClaimVerdict {
+    pub index: usize,
+    pub verdict: Verdict,
+    pub reason: String,
+}
+
+/// Jargon flag from AI reviewer.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct JargonFlag {
+    pub phrase: String,
+    pub plain: String,
+}
+
+/// Private phrase flag from AI reviewer.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct PrivateFlag {
+    pub phrase: String,
+    pub why: String,
+}
+
+/// AI review result for a project.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct AiReviewResult {
+    pub claims: Vec<ClaimVerdict>,
+    pub jargon: Vec<JargonFlag>,
+    pub private: Vec<PrivateFlag>,
+    pub suggested_overview: Option<String>,
+    pub overall: String, // "ok" or "needs_attention"
+    pub failed: bool,
+    pub failure_reason: Option<String>,
+}
+
+/// Per-project review report.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct ProjectReport {
+    pub repo_id: String,
+    pub checks: Vec<ReviewCheck>,
+    pub ai_result: Option<AiReviewResult>,
+    pub text_hash: String,
+    pub review_model: String,
+    pub prompt_version: String,
+    pub timestamp: DateTime<Utc>,
+}
+
+/// Complete review report.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct ReviewReport {
+    pub project_reports: Vec<ProjectReport>,
+    pub generated_at: DateTime<Utc>,
+}
+
+/// Decision state for a project.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[allow(dead_code)]
+pub enum Decision {
+    Pending,
+    Approved,
+    Hidden,
+    Stale,
+}
+
+/// Project override/decision from overrides.toml.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct ProjectDecision {
+    pub ai: bool,
+    pub decision: Decision,
+    pub approved_hash: Option<String>,
+    pub overview: Option<String>,
+    pub featured: Option<bool>,
+    pub status: Option<String>, // "active", "dormant", "built"
+    pub order: Option<i32>,
+}
+
+impl Default for ProjectDecision {
+    fn default() -> Self {
+        Self {
+            ai: true,
+            decision: Decision::Pending,
+            approved_hash: None,
+            overview: None,
+            featured: None,
+            status: None,
+            order: None,
+        }
+    }
+}
+
+/// Narrative override/decision.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct NarrativeDecision {
+    pub decision: Decision,
+    pub approved_hash: Option<String>,
+    pub approved_set_hash: Option<String>,
+    pub summary: Option<String>,
+}
+
+impl Default for NarrativeDecision {
+    fn default() -> Self {
+        Self {
+            decision: Decision::Pending,
+            approved_hash: None,
+            approved_set_hash: None,
+            summary: None,
+        }
+    }
+}
+
+/// All overrides loaded from overrides.toml.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct Overrides {
+    #[serde(flatten)]
+    pub projects: IndexMap<String, ProjectDecision>,
+    #[serde(default)]
+    pub narrative: NarrativeDecision,
+}
+
+impl Default for Overrides {
+    fn default() -> Self {
+        Self {
+            projects: IndexMap::new(),
+            narrative: NarrativeDecision::default(),
+        }
+    }
+}
+
+/// Reviewed project for export (public output).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct ReviewedProject {
+    pub repo_id: String,
+    pub name: String,
+    pub status: String, // "active" | "dormant" | "built"
+    pub overview: String,
+    pub featured: bool,
+    pub order: Option<i32>,
+    pub related: Vec<String>,
+}
+
+/// Recent activity for export.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct ReviewedActivity {
+    pub summary: String,
+}
+
+/// Complete reviewed export (public JSON).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct ReviewedExport {
+    pub schema_version: u32,
+    pub exported_at: DateTime<Utc>,
+    pub projects: Vec<ReviewedProject>,
+    pub recent_activity: Option<ReviewedActivity>,
+}
+
+/// Narrative generation result.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct NarrativeResult {
+    pub summary: String,
+    pub claims: Vec<RecentActivityClaim>,
+    pub failure: Option<String>,
 }
 
 // RUST NOTE: The ChatClient trait is defined in ai_client module.
