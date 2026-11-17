@@ -4,7 +4,7 @@
 //! Tests run synchronously without external network calls.
 
 use portfolio_engine::ai_client::{ChatClient, ChatMessage, ChatRequest, HttpChatClient, Throttle};
-use portfolio_engine::model::AiConfig;
+use portfolio_engine::config::AiConfig;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{
