@@ -80,7 +80,9 @@ impl State {
 
             if output.status.success() {
                 let count = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                Ok(count.parse().unwrap_or(0))
+                count
+                    .parse::<u32>()
+                    .context("Failed to parse commit count from git output")
             } else {
                 Ok(0)
             }
