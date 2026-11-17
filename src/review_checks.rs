@@ -6,6 +6,17 @@ use crate::model::{ProjectOverview, ReviewCheck, Severity};
 use regex::Regex;
 use std::collections::HashSet;
 
+lazy_static::lazy_static! {
+    static ref RE_HEX: Regex = Regex::new(r"\b[0-9a-f]{7,}\b").unwrap();
+    static ref RE_PATH: Regex = Regex::new(r"\b[a-zA-Z0-9_.-]+(?:/[a-zA-Z0-9_.-]+){2,}\b").unwrap();
+    static ref RE_FILE_EXT: Regex = Regex::new(
+        r"\b[a-zA-Z0-9_-]+\.(rs|js|ts|py|json|toml|yaml|yml|md|txt|html|css|go|java|cpp|h)\b"
+    ).unwrap();
+    static ref RE_URL: Regex = Regex::new(r"https?://\S+").unwrap();
+    static ref RE_EMAIL: Regex = Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b").unwrap();
+    static ref RE_KEY_LIKE: Regex = Regex::new(r"(?i)(api[_-]?key|token|secret|password|auth)[_-]?[:=]\s*\S+").unwrap();
+}
+
 /// Run all code checks on a project overview and claims.
 pub fn check_project(
     overview: &ProjectOverview,
@@ -146,7 +157,7 @@ pub fn prose_lint_checks(text: &str, location: &str) -> Vec<ReviewCheck> {
     let mut checks = Vec::new();
 
     // Hex string of 7+ characters
-    if Regex::new(r"\b[0-9a-f]{7,}\b").unwrap().is_match(text) {
+    if RE_HEX.is_match(text) {
         checks.push(ReviewCheck {
             code: "prose_lint".to_string(),
             severity: Severity::Error,
@@ -155,10 +166,7 @@ pub fn prose_lint_checks(text: &str, location: &str) -> Vec<ReviewCheck> {
     }
 
     // Path-like token (contains / or \ and looks like a path)
-    if Regex::new(r"\b[a-zA-Z0-9_.-]+(?:/[a-zA-Z0-9_.-]+){2,}\b")
-        .unwrap()
-        .is_match(text)
-    {
+    if RE_PATH.is_match(text) {
         checks.push(ReviewCheck {
             code: "prose_lint".to_string(),
             severity: Severity::Error,
@@ -167,12 +175,7 @@ pub fn prose_lint_checks(text: &str, location: &str) -> Vec<ReviewCheck> {
     }
 
     // File extension
-    if Regex::new(
-        r"\b[a-zA-Z0-9_-]+\.(rs|js|ts|py|json|toml|yaml|yml|md|txt|html|css|go|java|cpp|h)\b",
-    )
-    .unwrap()
-    .is_match(text)
-    {
+    if RE_FILE_EXT.is_match(text) {
         checks.push(ReviewCheck {
             code: "prose_lint".to_string(),
             severity: Severity::Error,
@@ -190,7 +193,7 @@ pub fn prose_lint_checks(text: &str, location: &str) -> Vec<ReviewCheck> {
     }
 
     // URL
-    if Regex::new(r"https?://\S+").unwrap().is_match(text) {
+    if RE_URL.is_match(text) {
         checks.push(ReviewCheck {
             code: "prose_lint".to_string(),
             severity: Severity::Error,
@@ -199,10 +202,7 @@ pub fn prose_lint_checks(text: &str, location: &str) -> Vec<ReviewCheck> {
     }
 
     // Email
-    if Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b")
-        .unwrap()
-        .is_match(text)
-    {
+    if RE_EMAIL.is_match(text) {
         checks.push(ReviewCheck {
             code: "prose_lint".to_string(),
             severity: Severity::Error,
@@ -211,10 +211,7 @@ pub fn prose_lint_checks(text: &str, location: &str) -> Vec<ReviewCheck> {
     }
 
     // Key-like pattern (API key, token, secret, etc.)
-    if Regex::new(r"(?i)(api[_-]?key|token|secret|password|auth)[_-]?[:=]\s*\S+")
-        .unwrap()
-        .is_match(text)
-    {
+    if RE_KEY_LIKE.is_match(text) {
         checks.push(ReviewCheck {
             code: "prose_lint".to_string(),
             severity: Severity::Error,
