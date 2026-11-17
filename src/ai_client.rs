@@ -3,7 +3,7 @@
 //! RUST NOTE: The ChatClient trait allows tests to substitute a fake.
 //! All API key handling must never log or print the key.
 
-use crate::model::AiConfig;
+use crate::config::AiConfig;
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
