@@ -93,6 +93,8 @@ pub fn run_init(config_path: &Path) -> Result<()> {
             ".venv".to_string(),
             "vendor".to_string(),
         ],
+        ai: crate::config::AiConfig::default(),
+        review: crate::config::ReviewConfig::default(),
     };
 
     config.save(config_path).context("Failed to save config")?;
