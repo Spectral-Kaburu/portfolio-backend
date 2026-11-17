@@ -10,8 +10,29 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
-use std::path::Path;
+use std::sync::LazyLock;
 
+// RUST NOTE: LazyLock provides thread-safe, one-time initialization of static regexes.
+// This avoids panicking at runtime if a regex pattern is invalid (which shouldn't happen
+// with these hardcoded patterns, but we avoid unwrap() entirely as a defensive practice).
+static HEX_REGEX: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"\b[0-9a-f]{7,}\b").unwrap());
+static PATH_REGEX: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"\b[a-zA-Z0-9_.-]+(?:/[a-zA-Z0-9_.-]+){2,}\b").unwrap());
+static EXTENSION_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
+    regex::Regex::new(
+        r"\b[a-zA-Z0-9_-]+\.(rs|js|ts|py|json|toml|yaml|yml|md|txt|html|css|go|java|cpp|h)\b",
+    )
+    .unwrap()
+});
+static URL_REGEX: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"https?://\S+").unwrap());
+static EMAIL_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
+    regex::Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b").unwrap()
+});
+static API_KEY_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
+    regex::Regex::new(r"(?i)(api[_-]?key|token|secret|password|auth)[_-]?[:=]\s*\S+").unwrap()
+});
 /// Build the reviewed export from draft, overrides, and facts.
 pub fn build_reviewed_export(
     draft: &Draft,
@@ -306,10 +327,7 @@ fn prose_lint_checks(text: &str, location: &str) -> Vec<crate::model::ReviewChec
     let mut checks = Vec::new();
 
     // Hex string of 7+ characters
-    if regex::Regex::new(r"\b[0-9a-f]{7,}\b")
-        .unwrap()
-        .is_match(text)
-    {
+    if HEX_REGEX.is_match(text) {
         checks.push(crate::model::ReviewCheck {
             code: "prose_lint".to_string(),
             severity: crate::model::Severity::Error,
@@ -318,10 +336,7 @@ fn prose_lint_checks(text: &str, location: &str) -> Vec<crate::model::ReviewChec
     }
 
     // Path-like token
-    if regex::Regex::new(r"\b[a-zA-Z0-9_.-]+(?:/[a-zA-Z0-9_.-]+){2,}\b")
-        .unwrap()
-        .is_match(text)
-    {
+    if PATH_REGEX.is_match(text) {
         checks.push(crate::model::ReviewCheck {
             code: "prose_lint".to_string(),
             severity: crate::model::Severity::Error,
@@ -330,12 +345,7 @@ fn prose_lint_checks(text: &str, location: &str) -> Vec<crate::model::ReviewChec
     }
 
     // File extension
-    if regex::Regex::new(
-        r"\b[a-zA-Z0-9_-]+\.(rs|js|ts|py|json|toml|yaml|yml|md|txt|html|css|go|java|cpp|h)\b",
-    )
-    .unwrap()
-    .is_match(text)
-    {
+    if EXTENSION_REGEX.is_match(text) {
         checks.push(crate::model::ReviewCheck {
             code: "prose_lint".to_string(),
             severity: crate::model::Severity::Error,
@@ -353,7 +363,7 @@ fn prose_lint_checks(text: &str, location: &str) -> Vec<crate::model::ReviewChec
     }
 
     // URL
-    if regex::Regex::new(r"https?://\S+").unwrap().is_match(text) {
+    if URL_REGEX.is_match(text) {
         checks.push(crate::model::ReviewCheck {
             code: "prose_lint".to_string(),
             severity: crate::model::Severity::Error,
@@ -362,10 +372,7 @@ fn prose_lint_checks(text: &str, location: &str) -> Vec<crate::model::ReviewChec
     }
 
     // Email
-    if regex::Regex::new(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b")
-        .unwrap()
-        .is_match(text)
-    {
+    if EMAIL_REGEX.is_match(text) {
         checks.push(crate::model::ReviewCheck {
             code: "prose_lint".to_string(),
             severity: crate::model::Severity::Error,
@@ -374,10 +381,7 @@ fn prose_lint_checks(text: &str, location: &str) -> Vec<crate::model::ReviewChec
     }
 
     // Key-like pattern
-    if regex::Regex::new(r"(?i)(api[_-]?key|token|secret|password|auth)[_-]?[:=]\s*\S+")
-        .unwrap()
-        .is_match(text)
-    {
+    if API_KEY_REGEX.is_match(text) {
         checks.push(crate::model::ReviewCheck {
             code: "prose_lint".to_string(),
             severity: crate::model::Severity::Error,
