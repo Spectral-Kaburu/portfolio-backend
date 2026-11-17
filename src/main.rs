@@ -59,6 +59,7 @@ enum Commands {
         validate: bool,
     },
     /// List available AI models and probe the chosen one
+    /// --role enrich: [NOT IMPLEMENTED]
     AiModels {
         /// Path to config file (default: config.toml)
         #[arg(short, long, default_value = "config.toml")]
@@ -67,7 +68,7 @@ enum Commands {
         #[arg(long, default_value = "enrich")]
         role: String,
     },
-    /// Select projects for AI enrichment
+    /// Select projects for AI enrichment [NOT IMPLEMENTED]
     AiSelect {
         /// Path to config file (default: config.toml)
         #[arg(short, long, default_value = "config.toml")]
@@ -76,7 +77,7 @@ enum Commands {
         #[arg(short, long, default_value = "data/facts.json")]
         facts: PathBuf,
     },
-    /// Enrich projects with AI-generated prose
+    /// Enrich projects with AI-generated prose [NOT IMPLEMENTED]
     Enrich {
         /// Path to config file (default: config.toml)
         #[arg(short, long, default_value = "config.toml")]
