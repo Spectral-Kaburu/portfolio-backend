@@ -152,7 +152,7 @@ pub fn detect_languages(repo_path: &Path, tracked_files: &[String]) -> Result<Ve
                 .unwrap_or("")
                 .to_lowercase();
 
-            let lang = ext_map.get(ext.as_str()).unwrap_or(&"Other");
+            let lang = ext_map.get(ext.as_str()).unwrap_or(&"Unknown");
             *lang_bytes.entry(lang.to_string()).or_insert(0) += size;
             total_bytes += size;
         }
