@@ -11,9 +11,6 @@ pub mod state;
 
 // M2 modules
 pub mod ai_client;
-pub mod cache;
 pub mod digest;
-pub mod enrich;
 pub mod model;
-pub mod pickers;
 pub mod redact;
