@@ -13,29 +13,53 @@ pub struct Redacted {
     pub count: usize,
 }
 
-/// Compile all regex patterns for redaction.
+/// Compile all regex patterns for redaction, lazily with proper error handling.
+/// Patterns that fail to compile are skipped.
 fn get_patterns() -> Vec<Regex> {
-    vec![
-        // URLs with credentials: https://user:pass@host
-        Regex::new(r"https://[^/:]+:[^@]+@").unwrap(),
-        // Bearer tokens: Bearer abc123...
-        Regex::new(r"Bearer\s+[a-zA-Z0-9_\-\.]+").unwrap(),
-        // AWS Access Key IDs: AKIAxxxxxxxxxxxxxxxx
-        Regex::new(r"AKIA[0-9A-Z]{16}").unwrap(),
-        // Generic API key patterns: key="value" or key: "value"
-        // Using [#...#] to avoid escaping issues with quotes
-        Regex::new(r#"key["\']?\s*[:=]\s*["\']?[a-zA-Z0-9_\-]{16,}"#).unwrap(),
-        // OpenAI-style keys: sk-...
-        Regex::new(r"sk-[a-zA-Z0-9_]{20,}").unwrap(),
-        // Private keys (multi-line) - using # raw string to avoid \s issues
-        Regex::new(r#"-----BEGIN (RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----"#).unwrap(),
-        // Long hex strings (32+ consecutive hex chars - potential hashes/keys)
-        Regex::new(r"[0-9a-fA-F]{32,}").unwrap(),
-        // Email addresses
-        Regex::new(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+").unwrap(),
-        // Generic API key env vars: SOMETHING_API_KEY="value" or SOMETHING_API_KEY=value
-        Regex::new(r#"[A-Z_]+_API_KEY["\']?\s*[:=]\s*["\']?[a-zA-Z0-9_\-]{8,}"#).unwrap(),
-    ]
+    let mut patterns = Vec::new();
+
+    // URLs with credentials: https://user:pass@host
+    if let Ok(p) = Regex::new(r"https://[^/:]+:[^@]+@") {
+        patterns.push(p);
+    }
+    // Bearer tokens: Bearer abc123...
+    if let Ok(p) = Regex::new(r"Bearer\s+[a-zA-Z0-9_\-\.]+") {
+        patterns.push(p);
+    }
+    // AWS Access Key IDs: AKIAxxxxxxxxxxxxxxxx
+    if let Ok(p) = Regex::new(r"AKIA[0-9A-Z]{16}") {
+        patterns.push(p);
+    }
+    // Generic API key patterns: key="value" or key: "value"
+    if let Ok(p) = Regex::new(r#"key["\']?\s*[:=]\s*["\']?[a-zA-Z0-9_\-]{16,}"#) {
+        patterns.push(p);
+    }
+    // OpenAI-style keys: sk-...
+    if let Ok(p) = Regex::new(r"sk-[a-zA-Z0-9_]{20,}") {
+        patterns.push(p);
+    }
+    // Private keys (multi-line) - using # raw string to avoid \s issues
+    if let Ok(p) = Regex::new(
+        r#"-----BEGIN (RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----"#,
+    ) {
+        patterns.push(p);
+    }
+    // Long hex strings (32+ consecutive hex chars - potential hashes/keys)
+    // Excludes exactly 40-char hex strings which are git commit hashes (evidence-replaced)
+    // Matches: 32-39 chars OR 41+ chars, but NOT exactly 40 chars
+    if let Ok(p) = Regex::new(r"\b([a-fA-F0-9]{32,39}|[a-fA-F0-9]{41,})\b") {
+        patterns.push(p);
+    }
+    // Email addresses
+    if let Ok(p) = Regex::new(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+") {
+        patterns.push(p);
+    }
+    // Generic API key env vars: SOMETHING_API_KEY="value" or SOMETHING_API_KEY=value
+    if let Ok(p) = Regex::new(r#"[A-Z_]+_API_KEY["\']?\s*[:=]\s*["\']?[a-zA-Z0-9_\-]{8,}"#) {
+        patterns.push(p);
+    }
+
+    patterns
 }
 
 /// Redact sensitive patterns from text.
@@ -70,7 +94,7 @@ mod tests {
     const SENTINEL_AWS_KEY: &str = "AKIAIOSFODNN7EXAMPLE";
     const SENTINEL_BEARER: &str = "Bearer secret_token_12345";
     const SENTINEL_URL_CREDS: &str = "https://user:pass@example.com/repo";
-    const SENTINEL_LONG_HEX: &str = "0123456789abcdef0123456789abcdef0123456789abcdef";
+    const SENTINEL_LONG_HEX: &str = "0123456789abcdef0123456789abcdef";
 
     const SENTINEL_KEY_PATTERN: &str = r#"api_key="sk_test_12345678901234567890""#;
 
@@ -176,6 +200,21 @@ mod tests {
             "Short hex should be preserved"
         );
         assert_eq!(result.count, 0);
+    }
+
+    #[test]
+    fn test_commit_hash_preserved() {
+        // 40-char hex strings (git commit hashes) should NOT be redacted
+        // They will be evidence-replaced elsewhere in the pipeline
+        let commit_hash = "0123456789abcdef0123456789abcdef01234567";
+        let result = redact(commit_hash);
+        assert!(
+            result
+                .text
+                .contains("0123456789abcdef0123456789abcdef01234567"),
+            "40-char commit hash should be preserved"
+        );
+        assert_eq!(result.count, 0, "Commit hash should not be redacted");
     }
 
     #[test]
