@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Portfolio Engine Reviewed",
+  "type": "object",
+  "required": ["schema_version", "exported_at", "projects", "recent_activity"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "exported_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "projects": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/project" }
+    },
+    "recent_activity": {
+      "type": ["object", "null"],
+      "properties": {
+        "summary": { "type": "string" }
+      },
+      "required": ["summary"]
+    }
+  },
+  "$defs": {
+    "project": {
+      "type": "object",
+      "required": ["repo_id", "name", "status", "overview", "featured", "order", "related"],
+      "properties": {
+        "repo_id": { "type": "string" },
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "dormant", "built"] },
+        "overview": { "type": "string", "maxLength": 700 },
+        "featured": { "type": "boolean" },
+        "order": { "type": ["integer", "null"] },
+        "related": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}
