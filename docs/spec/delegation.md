@@ -10,7 +10,7 @@ The limits live in `AGENTS.md` so they can be checked at plan time without openi
 - **Workers:** at most **3 running at once**. Each does one slice and nothing else. A worker never spawns another agent.
 
 ## 3. Where workers live and how they are spawned
-Use the **herdr skill** for every Herdr operation. Take exact command syntax from the skill and `--help`, never from memory, because the CLI (Command Line Interface) changes. If a creation command returns an error or JSON (JavaScript Object Notation) that lacks what you need, stop and report. Do not retry blindly.
+Use the `hc` command for every Herdr operation. Take exact command syntax from the skill and `--help`, never from memory, because the CLI (Command Line Interface) changes. If a creation command returns an error or JSON (JavaScript Object Notation) that lacks what you need, stop and report. Do not retry blindly.
 
 **Layout:** every worker gets its own Herdr **workspace**, created together with its own git worktree and branch. Never run two workers in one checkout.
 
