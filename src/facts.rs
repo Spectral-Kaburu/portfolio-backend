@@ -38,34 +38,20 @@ pub struct Facts {
 /// A single project/repository.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Project {
-    /// Root commit hash (first 12 chars) or path hash fallback.
     pub repo_id: String,
-    /// Directory name.
     pub name: String,
-    /// Remote origin URL if available.
     pub remote_url: Option<String>,
-    /// Current HEAD short hash.
     pub head: String,
-    /// Total commit count.
     pub commit_count: u32,
-    /// First commit timestamp.
     #[serde(with = "rfc3339")]
     pub first_commit_at: DateTime<Utc>,
-    /// Last commit timestamp.
     #[serde(with = "rfc3339")]
     pub last_commit_at: DateTime<Utc>,
-    /// Languages used in the repository.
     pub languages: Vec<Language>,
-    /// Manifest files found.
     pub manifests: Vec<Manifest>,
-    /// README excerpt (capped).
     pub readme_excerpt: Option<String>,
-    /// Recent commits within active_days window.
     pub recent_commits: Vec<RecentCommit>,
-    /// Number of new commits since last scan.
     pub new_commits_since_last_scan: u32,
-    /// Source of repo_id: "root_commit" or "path".
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub id_source: Option<String>,
 }
 
@@ -146,6 +132,12 @@ impl Facts {
         }
         Ok(())
     }
+
+    /// Deserialize Facts from JSON string.
+    pub fn from_json(json: &str) -> Result<Self> {
+        let facts: Facts = serde_json::from_str(json).context("Failed to parse facts JSON")?;
+        Ok(facts)
+    }
 }
 
 /// RUST NOTE: Timestamp parsing is strict; malformed RFC 3339 timestamps will
@@ -156,6 +148,7 @@ impl Facts {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Datelike;
     use serde_json;
 
     /// Test that valid RFC 3339 timestamps deserialize correctly.

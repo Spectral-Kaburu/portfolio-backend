@@ -1254,6 +1254,7 @@ dependencies = [
  "hex",
  "indexmap",
  "jsonschema",
+ "lazy_static",
  "rand",
  "regex",
  "reqwest",
