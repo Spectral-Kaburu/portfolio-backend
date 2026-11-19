@@ -35,6 +35,10 @@ static API_KEY_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"(?i)(api[_-]?key|token|secret|password|auth)[_-]?[:=]\s*\S+").unwrap()
 });
 
+/// The status values an owner override may set (spec: "active | dormant | built").
+/// Anything else in `overrides.toml` is ignored and the computed status is used.
+static VALID_STATUSES: [&str; 3] = ["active", "dormant", "built"];
+
 /// Build the reviewed export from draft, overrides, and facts.
 pub fn build_reviewed_export(
     draft: &Draft,
@@ -98,14 +102,20 @@ pub fn build_reviewed_export(
             continue;
         }
 
+        // A non-empty owner override replaces the draft overview; an empty string
+        // is treated as absent and falls back to the draft text.
         let published_text = override_opt
             .and_then(|o| o.overview.as_deref())
+            .filter(|s| !s.is_empty())
             .unwrap_or(&project.overview);
 
         let featured = override_opt.and_then(|o| o.featured).unwrap_or(false);
         let order = override_opt.and_then(|o| o.order);
+        // Only the schema's statuses are honored; anything else falls back to computed.
         let status = override_opt
-            .and_then(|o| o.status.clone())
+            .and_then(|o| o.status.as_deref())
+            .filter(|s| VALID_STATUSES.contains(s))
+            .map(str::to_string)
             .unwrap_or_else(|| project.status.to_string());
 
         let related = filter_related(&project.related, &exported_repo_ids);
@@ -152,7 +162,12 @@ fn effective_decision(
             if ov.decision == Decision::Hidden {
                 Decision::Hidden
             } else if ov.decision == Decision::Approved {
-                let published_text = ov.overview.as_deref().unwrap_or(&project.overview);
+                // Empty override text counts as absent so the draft text is hashed.
+                let published_text = ov
+                    .overview
+                    .as_deref()
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or(&project.overview);
                 let hash = compute_text_hash(published_text);
                 if ov.approved_hash == Some(hash) {
                     Decision::Approved
@@ -387,4 +402,95 @@ pub fn run_export(config: &ReviewConfig, output_path: &std::path::Path) -> anyho
     );
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::{Decision, ProjectStatus};
+
+    /// Test fixture: one dormant project with a known draft overview.
+    fn fixture() -> (Draft, ProjectOverview) {
+        let draft_text = "A tool that watches a folder and renames files.".to_string();
+        (
+            Draft::default(),
+            ProjectOverview {
+                repo_id: "r1".to_string(),
+                name: "Alpha".to_string(),
+                status: ProjectStatus::Dormant,
+                overview: draft_text.clone(),
+                claims: Vec::new(),
+                related: Vec::new(),
+                claims_dropped: 0,
+                failure: None,
+            },
+        )
+    }
+
+    /// Approved override whose hash matches the given published text.
+    fn approved(hash_text: &str, status: Option<&str>, overview: Option<&str>) -> ProjectDecision {
+        ProjectDecision {
+            ai: true,
+            decision: Decision::Approved,
+            approved_hash: Some(compute_text_hash(hash_text)),
+            overview: overview.map(str::to_string),
+            status: status.map(str::to_string),
+            ..ProjectDecision::default()
+        }
+    }
+
+    fn export_one(decision: ProjectDecision, project: ProjectOverview) -> ReviewedExport {
+        let mut overrides = Overrides::default();
+        overrides.projects.insert("r1".to_string(), decision);
+        let mut draft = Draft::default();
+        draft.projects.push(project);
+        build_reviewed_export(&draft, &overrides, None, &ReviewConfig::default())
+            .expect("export builds")
+    }
+
+    #[test]
+    fn empty_overview_override_falls_back_to_draft() {
+        let (_, project) = fixture();
+        let export = export_one(approved(&project.overview, None, Some("")), project.clone());
+        assert_eq!(export.projects.len(), 1);
+        assert_eq!(export.projects[0].overview, project.overview);
+    }
+
+    #[test]
+    fn invalid_status_override_falls_back_to_computed() {
+        let (_, project) = fixture();
+        let export = export_one(approved(&project.overview, Some("shipped"), None), project);
+        assert_eq!(export.projects.len(), 1);
+        assert_eq!(export.projects[0].status, "dormant");
+    }
+
+    #[test]
+    fn valid_status_override_is_honored() {
+        let (_, project) = fixture();
+        let export = export_one(approved(&project.overview, Some("built"), None), project);
+        assert_eq!(export.projects.len(), 1);
+        assert_eq!(export.projects[0].status, "built");
+    }
+
+    #[test]
+    fn non_empty_overview_override_is_honored() {
+        let (_, project) = fixture();
+        let export = export_one(
+            approved("Owner edited text", None, Some("Owner edited text")),
+            project,
+        );
+        assert_eq!(export.projects.len(), 1);
+        assert_eq!(export.projects[0].overview, "Owner edited text");
+    }
+
+    /// The exported JSON must validate against the real schema file, with the
+    /// override status also accepted by the schema's enum.
+    #[test]
+    fn export_validates_against_reviewed_schema() {
+        let (_, project) = fixture();
+        let export = export_one(approved(&project.overview, Some("built"), None), project);
+
+        let schema_path = Path::new("schemas/reviewed.schema.json");
+        validate_reviewed_schema(&export, schema_path).expect("export matches schema");
+    }
 }
