@@ -177,7 +177,8 @@ pub fn run_interactive_loop(
 
                     if let Some(suggestion) = suggestion_opt {
                         // Verify suggestion passes checks
-                        let checks = crate::review_checks::check_project(project, facts, config);
+                        let checks =
+                            crate::review_checks::check_project(project, Some(facts), config);
                         let has_errors = checks
                             .iter()
                             .any(|c| c.severity == crate::model::Severity::Error);
